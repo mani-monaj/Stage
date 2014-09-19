@@ -240,6 +240,8 @@ void ModelRanger::Sensor::Visualize( ModelRanger::Vis* vis, ModelRanger* rgr ) c
 	
   //glTranslatef( 0,0, ranger->GetGeom().size.z/2.0 ); // shoot the ranger beam out at the right height
 			
+  glEnableClientState(GL_VERTEX_ARRAY);
+
   // pack the ranger hit points into a vertex array for fast rendering
   GLfloat pts[2*(sample_count+1)];
   glVertexPointer( 2, GL_FLOAT, 0, &pts[0] );       
@@ -294,7 +296,7 @@ void ModelRanger::Sensor::Visualize( ModelRanger::Vis* vis, ModelRanger* rgr ) c
 	    }
 	}
     }
-			
+
   if( vis->showArea )
     {
       if( sample_count > 1 )
@@ -364,7 +366,7 @@ void ModelRanger::Sensor::Visualize( ModelRanger::Vis* vis, ModelRanger* rgr ) c
     }	
 	
   rgr->PopColor();
-
+  glDisableClientState(GL_VERTEX_ARRAY);
   glPopMatrix();
 }
 	

@@ -70,18 +70,19 @@ void Stg::Gl::draw_string( float x, float y, float z, const char *str )
    glGetBooleanv( GL_CURRENT_RASTER_POSITION_VALID, &b );  
 
    //printf( "[%.2f %.2f %.2f] %d string %u %s\n", x,y,z, (int)b, (unsigned int)strlen(str), str ); 
-   
+   gl_font( FL_HELVETICA, 12 );
    if( b ) gl_draw( str ); // fltk function
 }
 
 void Stg::Gl::draw_string_multiline( float x, float y, float w, float h,  const char *str, Fl_Align align ) 
 {  
   //printf( "[%.2f %.2f %.2f] string %u %s\n", x,y,z,(unsigned int)strlen(str), str ); 
+  gl_font( FL_HELVETICA, 12 );
   gl_draw(str, x, y, w, h, align ); // fltk function
 }
 
 void Stg::Gl::draw_speech_bubble( float x, float y, float z, const char* str )
-{  
+{
 	draw_string( x, y, z, str );
 }
 
