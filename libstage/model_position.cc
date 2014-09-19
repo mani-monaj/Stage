@@ -265,6 +265,7 @@ void ModelPosition::Update( void  )
 
   // stop by default
   Velocity vel(0,0,0,0);
+  Velocity desired_acc(0.0, 0.0, 0.0, 0.0);
   
   if( this->subs ) // no driving if noone is subscribed
     {            
@@ -291,13 +292,13 @@ void ModelPosition::Update( void  )
 	    const double interval( (double)world->sim_interval / 1e6 );
 
 	    PRINT_DEBUG( "acceleration control mode" );
-	    PRINT_DEBUG4( "model %s command(%.2f %.2f %.2f)",
+      PRINT_DEBUG4( "model %s command(%.2f %.2f %.2f)",
 			  this->Token(), 
-			  this->goal.x, 
+        this->goal.x,
 			  this->goal.y, 
 			  //this->goal.z, 
 			  this->goal.a );
-	    
+
 	    switch( drive_mode )
 	      {
 	      case DRIVE_DIFFERENTIAL:
@@ -336,31 +337,55 @@ void ModelPosition::Update( void  )
 	  
 	case CONTROL_VELOCITY :
 	  {
+
+
+      // convert usec to sec
+      const double interval( (double)world->sim_interval / 1e6 );
+
+      // In velocity control mode, use acceleration_bounds as acceleration profile
+      vel = this->velocity;
+      const double inv_interval(1.0 / interval);
+
+      // Acceleration: +
+      // Deceleratiion: -
+
+      desired_acc.x = inv_interval * (goal.x - vel.x);
+      desired_acc.y = inv_interval * (goal.y - vel.y);
+      desired_acc.z = inv_interval * (goal.z - vel.z);
+      // No need to normalize anglular velocity difference
+      desired_acc.a = inv_interval * (goal.a - vel.a);
+
+      desired_acc.x = sgn(desired_acc.x) * fabs(acceleration_bounds[0].Constrain(sgn(vel.x) * desired_acc.x));
+      desired_acc.y = sgn(desired_acc.y) * fabs(acceleration_bounds[1].Constrain(sgn(vel.y) * desired_acc.y));
+      desired_acc.z = sgn(desired_acc.z) * fabs(acceleration_bounds[2].Constrain(sgn(vel.z) * desired_acc.z));
+      desired_acc.a = sgn(desired_acc.a) * fabs(acceleration_bounds[3].Constrain(sgn(vel.a) * desired_acc.a));
+
 	    PRINT_DEBUG( "velocity control mode" );
 	    PRINT_DEBUG4( "model %s command(%.2f %.2f %.2f)",
 			  this->Token(), 
 			  this->goal.x, 
 			  this->goal.y, 
 			  this->goal.a );
-				
+
 	    switch( drive_mode )
 	      {
 	      case DRIVE_DIFFERENTIAL:
 		// differential-steering model, like a Pioneer
-		vel.x = goal.x;
+    vel.x += desired_acc.x * interval;
 		vel.y = 0;
-		vel.a = goal.a;
+    vel.a += desired_acc.a * interval;
 		break;
 			  
 	      case DRIVE_OMNI:
 		// direct steering model, like an omnidirectional robot
-		vel.x = goal.x;
-		vel.y = goal.y;
-		vel.a = goal.a;
+    vel.x += desired_acc.x * interval;
+    vel.y += desired_acc.y * interval;
+    vel.a += desired_acc.a * interval;
 		break;
 			  
 	      case DRIVE_CAR:
 		// car like steering model based on speed and turning angle
+    PRINT_ERR( "car drive mode does not respect acceleration profile [to do] (assuming inf. accelrations)" );
 		vel.x = goal.x * cos(goal.a);
 		vel.y = 0;
 		vel.a = goal.x * sin(goal.a)/wheelbase;
@@ -479,7 +504,7 @@ void ModelPosition::Update( void  )
       vel.z = velocity_bounds[2].Constrain( vel.z );
       vel.a = velocity_bounds[3].Constrain( vel.a );
 
-      // printf( "final vel: %.2f %.2f %.2f\n", 
+      // printf( "final vel: %.2f %.2f %.2f\n",
       // vel.x, vel.y, vel.a );
 
       this->SetVelocity( vel );
